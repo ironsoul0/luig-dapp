@@ -35,9 +35,12 @@ class App extends Component {
     const networkId = await web3.eth.net.getId()
     const networkData = SocialNetwork.networks[networkId]
     if(networkData) {
+      console.log("starting tot fetch");
       const socialNetwork = web3.eth.Contract(SocialNetwork.abi, networkData.address)
       this.setState({ socialNetwork })
+      console.log(socialNetwork)
       const postCount = await socialNetwork.methods.postCount().call()
+      console.log("postCount ", postCount)
       this.setState({ postCount })
       // Load Posts
       for (var i = 1; i <= postCount; i++) {
@@ -58,15 +61,17 @@ class App extends Component {
 
   createPost(content) {
     this.setState({ loading: true })
-    this.state.socialNetwork.methods.createPost(content).send({ from: this.state.account })
-    .once('receipt', (receipt) => {
-      this.setState({ loading: false })
+    this.state.socialNetwork.methods.createPost(content).send({ from: this.state.account }, async (receipt, hash) => {
+      console.log(receipt, hash)
+      await this.loadBlockchainData()
+      this.setState({loading: false})
+
     })
   }
 
   tipPost(id, tipAmount) {
     this.setState({ loading: true })
-    this.state.socialNetwork.methods.tipPost(id).send({ from: this.state.account, value: tipAmount })
+    this.state.socialNetwork.methods.tipPost(id).send({ from: this.state.account, value: tipAmount, gas: 100000 })
     .once('receipt', (receipt) => {
       this.setState({ loading: false })
     })
