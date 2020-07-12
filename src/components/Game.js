@@ -39,9 +39,10 @@ class App extends Component {
       players.push(this.state.game.methods.players(i).call());
     }
     const resolved = await Promise.all(players);
-    console.log(resolved);
+    const me = resolved.filter(player => player[2] === this.state.account);
     this.setState({
-      players: resolved
+      players: resolved,
+      joinedGame: me.length > 0
     })
     //this.state.game.methods.joinGame("ironsoul", 5).send({ from: this.state.account, value: window.web3.utils.toWei('1', 'Ether') })
   }
@@ -79,14 +80,44 @@ class App extends Component {
 
 
      
-      this.setState({ game, loading: false, isOwner: isOwner === accounts[0], isStarted })
+      this.setState({ game, isOwner: isOwner === accounts[0], isStarted })
       this.gameStartedHandler();
       await this.fetchPlayers();
       await this.winnerAnnouncedHandler();
       await this.noWinnerHandler();
+      this.setState({
+        loading: false
+      })
+      console.log(this.state)
     } else {
       window.alert('Game contract not deployed to detected network.')
     }
+  }
+
+  changeNameHandler = (e) => {
+    e.preventDefault();
+    this.setState({
+      name: e.target.value
+    })
+  }
+
+  changeBetHandler = (e) => {
+    e.preventDefault();
+    this.setState({
+      bet: e.target.value
+    })
+  }
+
+  joinGameHandler = () => {
+    if (this.state.name.length === 0 || this.state.bet <= 0) return;
+    //this.state.game.methods.joinGame("ironsoul", 5).send({ from: this.state.account, value: window.web3.utils.toWei('1', 'Ether') })
+    this.state.game.methods.joinGame(this.state.name, this.state.bet).send({ from: this.state.account, value: window.web3.utils.toWei('1', 'Ether') }, (result) => {
+      this.setState(prevState => ({
+        name: '',
+        bet: '',
+        players: [...prevState.players, [this.state.name]]
+      }))
+    })
   }
 
   constructor(props) {
@@ -97,27 +128,48 @@ class App extends Component {
       loading: true,
       isOwner: false,
       isStarted: false,
-      players: []
+      joinedGame: false,
+      players: [],
+      name: '',
+      bet: ''
     }
   }
 
   render() {
+    const gameBody = this.state.isStarted ? (
+      <h3>Game already started</h3>
+    ) : (
+      <>
+            <h1 style={{marginTop: "100px"}}>
+              Game
+            </h1>
+            {!this.state.joinedGame ? <div>
+              <input value={this.state.name} onChange={this.changeNameHandler} type="text" placeholder="name" />
+              <br/>
+              <input value={this.state.bet} onChange={this.changeBetHandler} type="number" placeholder="your bet" />
+              <br/>
+              <button onClick={this.joinGameHandler}>Join game</button>
+            </div> : <p>you already joined</p>}
+            <div>
+              <h1>Joined Players</h1>
+              <div>
+                {this.state.players.map((player, index) => (
+                  <>
+                  <p key={index}>{player[0]}</p>
+                  </>
+                ))}
+              </div>
+            </div>
+            {this.state.isOwner && <button style={{marginTop: "50px"}} onClick={this.startGame}>Start game</button>}
+            </>
+    );
+
     return (
       <div>
         <Navbar account={this.state.account} />
         { this.state.loading
           ? <div id="loader" className="text-center mt-5"><p>Loading...</p></div>
-          : (
-            <>
-            <h1 style={{marginTop: "100px"}}>
-              Game
-            </h1>
-            <div>
-              <input type="text" placeholder="name" />
-            </div>
-            {this.state.isOwner && <button onClick={this.startGame}>Start game</button>}
-            </>
-          ) 
+          : gameBody
         }
       </div>
     );
