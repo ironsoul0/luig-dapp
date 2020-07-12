@@ -3,6 +3,7 @@ import Web3 from 'web3';
 import Identicon from 'identicon.js';
 import './App.css';
 import SocialNetwork from '../abis/SocialNetwork.json'
+import Game from '../abis/Game.json'
 import Navbar from './Navbar'
 import Main from './Main'
 
